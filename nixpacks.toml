@@ -1,0 +1,9 @@
+[providers]
+# Tell nixpacks to look inside your backend or frontend
+node = { emergency = true } 
+
+[phases.build]
+cmds = ['cd backend && npm install && npm run build']
+
+[start]
+cmd = 'cd backend && npm start'
