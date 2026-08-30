@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Snowflake } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import GoogleOAuthButton from "@/components/GoogleOAuthButton";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -76,6 +77,29 @@ export default function LoginPage() {
               {loading ? "Logging in…" : "Log in"}
             </button>
           </form>
+
+          {/* Google OAuth divider */}
+          <div className="flex items-center gap-3 my-5">
+            <span className="flex-1 h-px bg-white/10" />
+            <span className="text-xs text-slate-light/60">or</span>
+            <span className="flex-1 h-px bg-white/10" />
+          </div>
+
+          <GoogleOAuthButton
+            disabled={loading}
+            onCredential={async (credential) => {
+              setError("");
+              setLoading(true);
+              try {
+                const user = await googleLogin(credential);
+                router.push(`/dashboard/${user.role}`);
+              } catch (err) {
+                setError(err.message || "Google sign-in failed. Please try again.");
+              } finally {
+                setLoading(false);
+              }
+            }}
+          />
 
           <p className="text-xs text-slate-light mt-6 text-center">
             New customer?{" "}

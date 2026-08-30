@@ -1,103 +1,207 @@
-# ServiceFlow™ — HVAC Service Management System
+# ServiceFlow — HVAC Service Management System
 
-ArcticAir HVAC Solutions is a centralized, web-based operations and service platform designed to manage customer requests, dispatch technicians, construct quotations, generate printable invoices, manage card payments, and automate annual maintenance contracts.
-
-This full-stack application is built with **Next.js 14 + Tailwind CSS** (frontend) and **Express + MongoDB + JWT** (backend).
+ServiceFlow is a full-stack service management platform for HVAC businesses, built with a Node.js/Express backend and a Next.js frontend. It handles the end-to-end lifecycle of a service business — from customer service requests and quotations, to job scheduling, invoicing, and maintenance contracts.
 
 ---
 
-## Project Structure
+## 🏆 IBM TechXchange 2026 Pre-conference Dev Day Hackathon Submission
+
+### Theme
+
+**Build with purpose using IBM Bob 2.0**
+
+### Problem Statement
+
+In large, actively-developed codebases with multiple contributors, a developer picking up a new feature request or joining the project spends hours understanding the architecture, locating the relevant files across backend and frontend, and assessing risks — before writing a single line of code. This leads to wasted time, missed edge cases, and rework, especially in projects like ServiceFlow with many interconnected modules (auth, service requests, quotations, jobs, invoices, maintenance contracts).
+
+### Our Solution: Bob Codebase Navigator
+
+We used **IBM Bob 2.0** to build an agentic developer workflow that takes a high-level feature request and autonomously guides it from understanding to tested implementation, with a mandatory human approval gate before any code is changed.
+
+**Workflow:**
 
 ```
-serviceflow-scaffold/
-├── backend/          # Express REST API (JWT auth, role middleware, MongoDB Models)
-│   ├── config/       # DB connectivity config
-│   ├── controllers/  # Operations and business logic
-│   ├── middleware/   # JWT verification and error handlers
-│   ├── models/       # Mongoose Schemas (11 Collections)
-│   ├── routes/       # API endpoints definitions
-│   ├── uploads/      # Static directory storing uploaded images/signatures
-│   ├── seed.js       # Admin/Staff/Customer database seeder
-│   └── server.js     # API Entry point
-└── frontend/         # Next.js App Router Client Portal
-    ├── src/
-    │   ├── app/      # Page routing components and dashboards
-    │   ├── components/# Reusable UI elements (Navbar, Footer, Shells, Gauges)
-    │   ├── context/  # React AuthContext wrapping login/register
-    │   └── lib/      # Axios API client config
+Feature Request
+      │
+      ▼
+Codebase & Document Understanding (Bob reads README, code, docs)
+      │
+      ▼
+Parallel Subagent Analysis
+      ├── Architecture Analyst
+      ├── Code Analyst
+      ├── Documentation Analyst
+      └── Testing Analyst
+      │
+      ▼
+Risk Assessment & Findings Synthesis
+      │
+      ▼
+Implementation Plan (file-level, risk-classified, decision points flagged)
+      │
+      ▼
+🛑 Developer Approval Gate
+      │
+      ▼
+Implementation (Bob Agent mode, one sub-task at a time)
+      │
+      ▼
+Automated Testing
 ```
 
+### Demonstrated Bob 2.0 Capabilities
+
+| Feature                    | How we used it                                                                                                                                                          |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Document Understanding** | Bob read the project README and existing code to build a full context/onboarding summary before touching anything.                                                      |
+| **Agent Mode & Subagents** | 4 specialized subagents (Architecture, Code, Documentation, Testing Analysts) independently investigated the codebase and returned structured, evidence-based findings. |
+| **Parallel Tasks**         | Multiple backend files and modules were analyzed simultaneously during the investigation phase rather than sequentially.                                                |
+| **Approval Gate**          | Bob produced a full implementation plan with a 10-item approval checklist and did **not** modify any code until it was explicitly approved by the developer.            |
+
+### Case Study: Adding Google OAuth Authentication
+
+As a real-world proof of concept, we asked Bob Codebase Navigator to handle the feature request: _"Add Google OAuth authentication to the application."_
+
+**What Bob delivered:**
+
+- A full architecture trace of the existing JWT-based auth system before proposing any change
+- 4 parallel subagent reports covering architecture, exact files/functions, documentation impact, and testing gaps
+- A written implementation plan (`google-oauth-plan.md`) with a Mermaid flow diagram, file-by-file change table, and 3 critical risks identified **before** implementation:
+  - Helmet CSP would silently block Google's sign-in script
+  - Missing `GOOGLE_CLIENT_ID` at startup should fail loudly, not silently
+  - The `password` field's required validator needed to become conditional, or Google-only users could never save to MongoDB
+- Explicit flags for decisions that needed a human call (e.g. automatic vs. explicit account linking for a Google email matching an existing password account)
+
+**After approval, Bob implemented:**
+
+|                         | Count      |
+| ----------------------- | ---------- |
+| Files modified          | 7          |
+| Files created           | 9          |
+| Automated tests written | 43         |
+| Tests passing           | 43 / 43 ✅ |
+
+Zero code was touched until the plan was reviewed and approved by the developer — the workflow always stopped at the approval gate.
+
+### Impact
+
+| Task                                      | Manual (estimate) | With Bob Codebase Navigator |
+| ----------------------------------------- | ----------------- | --------------------------- |
+| Understand existing auth architecture     | ~1 hr             | ~5 min                      |
+| Map feature request to relevant files     | ~45 min           | ~3 min                      |
+| Write implementation plan + risk analysis | ~1 hr             | ~5 min                      |
+| Implement feature + write 43 tests        | ~4–5 hrs          | ~15–20 min                  |
+| **Total**                                 | **~7 hrs**        | **~30 min**                 |
+
+This reflects the core hackathon goal: reducing the time, effort, and errors involved in a real developer workflow — here, feature onboarding and implementation — using IBM Bob 2.0's Agent mode, subagents, parallel tasks, and document understanding.
+
+### Evidence of Bob Usage
+
+Bob task session summary screenshots (Task ID, Workspace, Context Length, Bobcoin consumption, and completion status) for every stage of this workflow are available in [`bob_sessions/`](bob_sessions/):
+
+- Codebase & document understanding
+- Parallel subagent analysis (architecture, code, docs, testing)
+- Implementation plan generation
+- Implementation & automated testing
+
 ---
 
-## Technical Features Implemented
+## 🛠 Tech Stack
 
-1. **Role-Based Security Gates**: Gated dashboards for Customers, Technicians, Dispatchers, and Administrators using JSON Web Tokens (JWT) stored in LocalStorage.
-2. **In-App Notification Panel**: A poll-based header bell dropdown displaying events like Technician Assignment, Quotation Approvals, Maintenance reminders, and Invoice issues.
-3. **Quotation line-item Builder**: Full line-item constructors with live pre-calculations of subtotals, tax margins, and discounts.
-4. **Interactive Dispatch Desk**: Schedule assignments, dispatch field technicians, and review unassigned incoming work logs.
-5. **Technician Evidence & Signature Pad**: Job tracking (Scheduled -> En Route -> In Progress -> Completed) with before/after photo evidence uploads, work note logging, and an HTML5 Canvas signature pad.
-6. **Printable Invoices**: Fully branded receipt receipt layouts with direct browser printing triggers (`window.print()`).
-7. **Mock Credit Card Checkout**: Front-end checkout form validating card formatting, expiry calendar checks, and security codes to settle balances.
-8. **Maintenance Plan Automation**: Admin dashboard contract builders and a automated renewal checking engine scanning for contracts expiring in < 30 days.
+- **Backend:** Node.js, Express, MongoDB (Mongoose), JWT authentication
+- **Frontend:** Next.js (React), Context API for auth state
+- **Testing:** Jest, Supertest, mongodb-memory-server, React Testing Library
+- **AI Development Tool:** IBM Bob 2.0 (IDE, Agent mode, Subagents)
 
----
+## 📂 Project Structure
 
-## Getting Started
+```
+service-management-system/
+├── backend/
+│   ├── controllers/       # Request handlers (auth, quotations, jobs, invoices, etc.)
+│   ├── models/             # Mongoose schemas
+│   ├── routes/             # Express route definitions
+│   ├── __tests__/          # Backend test suites
+│   └── server.js           # App entry point
+├── frontend/
+│   └── src/
+│       ├── app/             # Next.js pages
+│       ├── components/      # Reusable UI components
+│       ├── context/         # AuthContext and other React context providers
+│       └── __tests__/       # Frontend test suites
+├── bob_sessions/            # Evidence of IBM Bob task sessions (hackathon requirement)
+└── google-oauth-plan.md     # Bob-generated implementation plan for the OAuth feature
+```
 
-### 1. Prerequisite
-Ensure a running MongoDB instance (local server or Atlas cluster string). The workspace contains a pre-configured MongoDB Atlas connection inside the backend `.env` file for plug-and-play testing.
+## 🚀 Getting Started
 
-### 2. Backend Setup
+### Prerequisites
+
+- Node.js (LTS)
+- MongoDB instance (local or hosted)
+
+### Backend Setup
+
 ```bash
 cd backend
 npm install
-npm run seed                # Creates demo credentials
-npm run dev                 # Starts Express server on http://localhost:5000
+cp .env.example .env   # fill in MONGO_URI, JWT_SECRET, JWT_EXPIRES_IN, GOOGLE_CLIENT_ID
+npm run dev
 ```
 
-**Seeded Accounts (Password for all: `password123`):**
-* **Admin**: `admin@arcticair.com`
-* **Dispatcher**: `dispatcher@arcticair.com`
-* **Technician**: `technician@arcticair.com`
-* **Customer**: `customer@arcticair.com`
+### Frontend Setup
 
-### 3. Frontend Setup
 ```bash
 cd frontend
 npm install
-npm run dev                 # Starts Next.js app on http://localhost:3000
+cp .env.local.example .env.local   # fill in NEXT_PUBLIC_GOOGLE_CLIENT_ID and API base URL
+npm run dev
 ```
 
----
+### Google OAuth Setup
 
-## Core API Endpoints
+1. Create an OAuth 2.0 Client ID in the [Google Cloud Console](https://console.cloud.google.com/) (OAuth consent screen → Credentials → Create Credentials → OAuth Client ID → Web application).
+2. Add your Client ID to both env files:
 
-### Authentication
-* `POST /api/auth/register` — Create new accounts.
-* `POST /api/auth/login` — Sign in and receive token.
-* `GET /api/auth/me` — Retrieve active profile.
+```bash
+# backend/.env
+GOOGLE_CLIENT_ID=<your-id>.apps.googleusercontent.com
 
-### Service Requests
-* `POST /api/service-requests` — Customers submit a request (supports images).
-* `GET /api/service-requests` — Scoped directory of requests.
-* `PUT /api/service-requests/:id/assign` — Assign technician and date.
+# frontend/.env.local
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=<same-id>.apps.googleusercontent.com
+```
 
-### Uploads & File Management
-* `POST /api/upload` — Uploads an image/signature to local `backend/uploads/` and returns URL.
+3. Start both servers — the "Sign in with Google" button will appear on `/login` below the password form.
 
-### Quotations
-* `POST /api/quotations` — Create line-item quotes (Admin/Dispatcher).
-* `PUT /api/quotations/:id/send` — Send quotation to client.
-* `PUT /api/quotations/:id/respond` — Accept/decline quotation (Customer).
+### Running Tests
 
-### Job Tracking
-* `PUT /api/jobs/:id` — Tech updates job (Scheduled -> En Route -> In Progress -> Completed), submits notes, before/after photos, and signature url.
+```bash
+# Backend
+cd backend && npm test
 
-### Invoices & Payments
-* `POST /api/invoices` — Generate invoice.
-* `POST /api/invoices/:id/payments` — Record card/manual payment against invoice.
+# Frontend
+cd frontend && npm test
+```
 
-### Maintenance Contracts
-* `POST /api/maintenance-contracts` — Configure service plans.
-* `POST /api/maintenance-contracts/check-reminders` — Scan expiring agreements and email/notify users.
-* `PUT /api/maintenance-contracts/:id/renew` — Extend contract for 1 year.
+## ✨ Core Features
+
+- Customer service request submission and tracking
+- Quotation generation and approval workflow
+- Job scheduling and status management
+- Invoicing
+- Maintenance contract management
+- Role-based access control (RBAC)
+- Local (email/password) and Google OAuth authentication
+
+## 🔐 API Endpoints (Auth)
+
+| Method | Endpoint             | Description                                |
+| ------ | -------------------- | ------------------------------------------ |
+| POST   | `/api/auth/register` | Register with email/password               |
+| POST   | `/api/auth/login`    | Login with email/password                  |
+| POST   | `/api/auth/google`   | Login/register via Google OAuth (ID token) |
+| GET    | `/api/auth/me`       | Get current authenticated user             |
+
+## 📄 License
+
+This project was built for the IBM TechXchange 2026 Pre-conference Dev Day Hackathon.

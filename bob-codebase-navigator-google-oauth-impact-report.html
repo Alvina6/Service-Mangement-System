@@ -1,0 +1,686 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bob Codebase Navigator — Google OAuth Impact Report</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f2328;
+    background: #ffffff;
+    padding: 32px 16px 48px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+
+  /* Header */
+  .report-header { border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 28px; }
+  .report-header .badge {
+    display: inline-block; background: #3b82d4; color: #fff;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+    padding: 2px 8px; border-radius: 4px; margin-bottom: 10px; text-transform: uppercase;
+  }
+  .report-header h1 { font-size: 22px; font-weight: 700; color: #1f2328; margin-bottom: 6px; }
+  .report-header .subtitle { font-size: 13px; color: #57606a; }
+  .report-header .meta { margin-top: 12px; display: flex; gap: 24px; flex-wrap: wrap; }
+  .report-header .meta span { font-size: 12px; color: #57606a; }
+  .report-header .meta strong { color: #1f2328; }
+
+  /* Section */
+  .section { margin-bottom: 32px; }
+  .section-title {
+    font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: #57606a; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 14px;
+  }
+  .section-title span { color: #3b82d4; margin-right: 6px; }
+
+  /* Prose */
+  p { margin-bottom: 10px; color: #1f2328; }
+  ul { padding-left: 18px; margin-bottom: 10px; }
+  li { margin-bottom: 4px; }
+
+  /* Callout boxes */
+  .callout {
+    background: #f7f8fa; border: 1px solid #e5e7eb; border-left: 3px solid #3b82d4;
+    border-radius: 6px; padding: 12px 14px; margin-bottom: 12px;
+  }
+  .callout.warn { border-left-color: #e67e22; }
+  .callout.danger { border-left-color: #c0392b; }
+  .callout.ok { border-left-color: #27ae60; }
+  .callout strong { display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #57606a; text-transform: uppercase; letter-spacing: 0.04em; }
+  .callout p { margin: 0; font-size: 13px; }
+
+  /* Code pill */
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px; background: #f0f1f3; color: #c0392b;
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
+  th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 7px 10px; text-align: left; font-weight: 600; color: #1f2328; font-size: 12px; }
+  td { border: 1px solid #e5e7eb; padding: 7px 10px; vertical-align: top; }
+  tr:hover td { background: #fafbfc; }
+
+  /* Confidence/relevance badges */
+  .badge-confirmed { background: #e9f8f0; color: #1a7a3e; border: 1px solid #b0e0c4; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-potential { background: #fff8e1; color: #856404; border: 1px solid #fce08a; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-unknown   { background: #f0f1f3; color: #57606a; border: 1px solid #d0d7de; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+  .badge-must    { background: #fce8e8; color: #c0392b; border: 1px solid #f4b8b8; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-likely  { background: #fff3cd; color: #856404; border: 1px solid #fce08a; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-config  { background: #e8f0fe; color: #3b5bdb; border: 1px solid #b3c9fa; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-nochange { background: #e9f8f0; color: #1a7a3e; border: 1px solid #b0e0c4; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+  .badge-critical { background: #fce8e8; color: #c0392b; border: 1px solid #f4b8b8; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-high     { background: #fff3cd; color: #856404; border: 1px solid #fce08a; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-medium   { background: #e8f0fe; color: #3b5bdb; border: 1px solid #b3c9fa; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-low      { background: #f0f1f3; color: #57606a; border: 1px solid #d0d7de; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+  /* Step list */
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: step;
+    display: flex; gap: 12px; align-items: flex-start;
+    margin-bottom: 12px; padding: 12px 14px;
+    background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px;
+  }
+  .steps li::before {
+    content: counter(step);
+    min-width: 24px; height: 24px; border-radius: 50%;
+    background: #3b82d4; color: #fff;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .steps li .step-body { flex: 1; }
+  .steps li .step-title { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+  .steps li .step-detail { font-size: 12px; color: #57606a; }
+
+  /* Data flow arrows */
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 13px; }
+  .flow-box {
+    background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 4px;
+    padding: 4px 8px; font-size: 12px;
+  }
+  .flow-box.new { background: #e9f8f0; border-color: #b0e0c4; color: #1a7a3e; }
+  .flow-box.changed { background: #fff3cd; border-color: #fce08a; color: #856404; }
+  .flow-arrow { color: #57606a; font-size: 14px; }
+
+  /* Unknown note */
+  .unknown-item { padding: 8px 12px; background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 5px; margin-bottom: 8px; font-size: 13px; }
+  .unknown-item strong { color: #1f2328; }
+
+  /* Footer */
+  .footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #57606a; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .report-header .meta { flex-direction: column; gap: 6px; }
+    table { font-size: 12px; }
+    th, td { padding: 5px 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  
+  <div class="report-header">
+    <div class="badge">Bob Codebase Navigator</div>
+    <h1>Google OAuth Authentication — Codebase Impact Report</h1>
+    <p class="subtitle">ServiceFlow™ HVAC Service Management System  ·  ArcticAir Solutions</p>
+    <div class="meta">
+      <span><strong>Feature Request:</strong> Add Google OAuth authentication to the application</span>
+      <span><strong>Stack:</strong> Next.js 14 · Express · MongoDB · JWT</span>
+      <span><strong>Analysts:</strong> Architecture · Code · Documentation · Testing</span>
+    </div>
+  </div>
+
+
+  
+  <div class="section">
+    <div class="section-title"><span>01</span>Feature Understanding</div>
+    <p>
+      "Add Google OAuth authentication" means users can sign in (and implicitly register) using their Google account instead of — or in addition to — an email/password pair. Google's OAuth 2.0 flow issues a signed <strong>Google ID token</strong> to the browser, which the backend exchanges for a verified user profile (name, email, Google subject ID) and then issues a standard ServiceFlow JWT in the same shape the rest of the application already consumes.
+    </p>
+    <p>
+      For this codebase the most practical strategy is the <strong>client-side credential flow</strong> (using <code>@react-oauth/google</code>): the Google popup runs entirely in the browser, returns an ID token, and the frontend POSTs that token to a new backend route (<code>POST /api/auth/google</code>) which verifies it with <code>google-auth-library</code>. No server-side session or Passport.js is required.
+    </p>
+    <p>
+      The backend then performs a <strong>find-or-create (upsert)</strong> against the User collection — returning an existing user if the email or <code>googleId</code> already exists, or creating a new <code>customer</code>-role user otherwise — and calls the already-present <code>generateToken(user._id)</code> helper to issue the ServiceFlow JWT. From that point on, <em>every downstream layer is unchanged</em>: the same localStorage key, axios interceptor, <code>protect</code> middleware, and role-based dashboards all work transparently.
+    </p>
+  </div>
+
+
+  
+  <div class="section">
+    <div class="section-title"><span>02</span>Current Authentication Architecture</div>
+
+    <p><strong>End-to-end credential flow (confirmed):</strong></p>
+    <div class="flow">
+      <div class="flow-box">User types email + password</div><div class="flow-arrow">→</div>
+      <div class="flow-box"><code>AuthContext.login()</code></div><div class="flow-arrow">→</div>
+      <div class="flow-box">POST /api/auth/login</div><div class="flow-arrow">→</div>
+      <div class="flow-box">bcrypt.compare()</div><div class="flow-arrow">→</div>
+      <div class="flow-box">generateToken(id) → JWT</div>
+    </div>
+    <div class="flow">
+      <div class="flow-box">JWT → localStorage <code>serviceflow_token</code></div><div class="flow-arrow">→</div>
+      <div class="flow-box">axios interceptor → <code>Authorization: Bearer</code></div><div class="flow-arrow">→</div>
+      <div class="flow-box">protect middleware → verifies JWT, loads User, checks isActive</div><div class="flow-arrow">→</div>
+      <div class="flow-box">req.user set → authorize(role) gates</div>
+    </div>
+
+    <p style="margin-top:12px"><strong>Session hydration on page load:</strong> <code>AuthContext</code> <code>useEffect</code> reads <code>serviceflow_token</code> from localStorage and calls <code>GET /api/auth/me</code>. If valid and <code>isActive</code>, <code>user</code> state is restored. Failure removes the token silently.</p>
+
+    <table>
+      <thead>
+        <tr><th>Layer</th><th>File</th><th>Responsibility</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Route definitions</td><td><code>backend/routes/authRoutes.js</code></td><td>POST /register, /login; GET /me; POST /staff</td></tr>
+        <tr><td>Business logic</td><td><code>backend/controllers/authController.js</code></td><td>register, login, getMe, createStaffUser, generateToken (private)</td></tr>
+        <tr><td>JWT guard</td><td><code>backend/middleware/auth.js</code></td><td>protect (Bearer verify + User load), authorize (role gate)</td></tr>
+        <tr><td>User schema</td><td><code>backend/models/User.js</code></td><td>bcrypt pre-save, comparePassword, toSafeObject</td></tr>
+        <tr><td>Frontend state</td><td><code>frontend/src/context/AuthContext.js</code></td><td>login(), register(), logout(), session hydration</td></tr>
+        <tr><td>HTTP client</td><td><code>frontend/src/lib/api.js</code></td><td>axios + Bearer interceptor + error normalizer</td></tr>
+        <tr><td>Entry UI</td><td><code>frontend/src/app/login/page.js</code></td><td>Email/password form → login() → redirect by role</td></tr>
+        <tr><td>Registration UI</td><td><code>frontend/src/app/register/page.js</code></td><td>Registration form → register() → redirect customer</td></tr>
+        <tr><td>App wrapper</td><td><code>frontend/src/app/layout.js</code></td><td>AuthProvider wraps entire app tree</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  
+  <div class="section">
+    <div class="section-title"><span>03</span>Relevant Files by Change Category</div>
+
+    
+    <p><strong style="font-size:13px">🔴 Must Change</strong></p>
+    <table>
+      <thead>
+        <tr><th>File</th><th>Symbol / Location</th><th>Why</th><th>Confidence</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>backend/models/User.js</code></td>
+          <td><code>password</code> field (line 9)<br /><code>userSchema</code></td>
+          <td><code>required: true</code> causes a hard Mongoose ValidationError for any OAuth user created without a password. Must change to a conditional validator: <code>required: function(){ return !this.googleId; }</code>. Also must add <code>googleId: { type: String, sparse: true, unique: true }</code> field for reliable account lookup.</td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>backend/controllers/authController.js</code></td>
+          <td>No <code>googleAuth</code> export</td>
+          <td>New <code>googleAuth</code> function needed: verify Google ID token via <code>google-auth-library</code>, find-or-create User by <code>googleId</code>/email, call existing <code>generateToken(user._id)</code>, return <code>{ success, user, token }</code>.</td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>backend/routes/authRoutes.js</code></td>
+          <td>Missing <code>POST /google</code> route</td>
+          <td>Add <code>router.post('/google', googleAuth)</code>. Route must not use <code>protect</code> (user is unauthenticated at call time). Will inherit authLimiter from server.js mount.</td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>frontend/src/context/AuthContext.js</code></td>
+          <td>Context value (line 45)</td>
+          <td>Add <code>loginWithGoogle(idToken)</code> function: POST token to <code>/auth/google</code>, store JWT in localStorage, call <code>setUser()</code>. Add to Provider value. Mirrors existing <code>login()</code> pattern exactly.</td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>frontend/src/app/login/page.js</code></td>
+          <td><code>LoginPage</code> component</td>
+          <td>Add "Continue with Google" button using <code>@react-oauth/google</code>'s <code>&lt;GoogleLogin&gt;</code>. On success, call <code>loginWithGoogle(credential)</code> and redirect to <code>/dashboard/${user.role}</code>.</td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>backend/.env.example</code></td>
+          <td>Missing env vars</td>
+          <td>Add <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code>. Without these the token verification call to Google will fail at startup.</td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>frontend/.env.local.example</code></td>
+          <td>Missing env var</td>
+          <td>Add <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>. Required by <code>GoogleOAuthProvider</code>'s <code>clientId</code> prop at render time.</td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>backend/package.json</code></td>
+          <td><code>dependencies</code></td>
+          <td>Add <code>google-auth-library</code>. Without it, Google ID token verification is impossible. (<code>npm install google-auth-library</code>)</td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>frontend/package.json</code></td>
+          <td><code>dependencies</code></td>
+          <td>Add <code>@react-oauth/google</code>. Provides <code>GoogleOAuthProvider</code> and <code>GoogleLogin</code> components for Next.js 14 App Router. (<code>npm install @react-oauth/google</code>)</td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    
+    <p style="margin-top:16px"><strong style="font-size:13px">🟡 Likely Change</strong></p>
+    <table>
+      <thead>
+        <tr><th>File</th><th>Symbol / Location</th><th>Why</th><th>Confidence</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>frontend/src/app/register/page.js</code></td>
+          <td><code>RegisterPage</code> component</td>
+          <td>Add Google sign-up button for UX consistency. Not strictly required if the login page's find-or-create backend logic handles first-time OAuth users automatically, but expected by users.</td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>frontend/src/app/layout.js</code></td>
+          <td><code>RootLayout</code> — AuthProvider</td>
+          <td>Must wrap the tree with <code>&lt;GoogleOAuthProvider clientId={...}&gt;</code>. Can be added directly in layout.js or as a client component wrapper to preserve Next.js 14 server component conventions.</td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>backend/server.js</code></td>
+          <td><code>helmet()</code> CSP config (line 30)</td>
+          <td>Default Helmet CSP may block loading the Google Identity Services script (<code>accounts.google.com</code>). A <code>scriptSrc</code> allowance may be needed for the Google Sign-In button to render.</td>
+          <td><span class="badge-potential">Potential</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    
+    <p style="margin-top:16px"><strong style="font-size:13px">🟢 No Change Required</strong></p>
+    <table>
+      <thead>
+        <tr><th>File</th><th>Reason</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>backend/middleware/auth.js</code> — <code>protect</code>, <code>authorize</code></td><td>Middleware only checks JWT validity and <code>isActive</code>. It is indifferent to how the JWT was issued (password or OAuth). Zero changes needed.</td></tr>
+        <tr><td><code>frontend/src/lib/api.js</code></td><td>Bearer interceptor reads <code>serviceflow_token</code> from localStorage. OAuth flow stores the same key. No changes needed.</td></tr>
+        <tr><td><code>backend/server.js</code> — CORS</td><td>Google popup communicates with <code>accounts.google.com</code> independently. The final POST to <code>/api/auth/google</code> originates from <code>CLIENT_URL</code> — already allowed.</td></tr>
+        <tr><td><code>backend/server.js</code> — authLimiter</td><td>15 req/15 min is ample for OAuth (1 request per login). Not a blocker; keep as-is.</td></tr>
+        <tr><td><code>frontend/src/components/Navbar.jsx</code></td><td>Already auth-aware via <code>useAuth()</code>. Once <code>loginWithGoogle</code> sets <code>user</code> state, the Navbar responds correctly with no changes.</td></tr>
+        <tr><td>All other controllers, routes, models</td><td>Unaffected. OAuth touches only the auth entry point, not business logic.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  
+  <div class="section">
+    <div class="section-title"><span>04</span>Configuration &amp; Documentation Changes</div>
+    <table>
+      <thead>
+        <tr><th>File</th><th>Update Needed</th><th>Priority</th><th>Confidence</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>backend/.env.example</code></td>
+          <td>Add: <code>GOOGLE_CLIENT_ID=</code>, <code>GOOGLE_CLIENT_SECRET=</code>, <code>GOOGLE_CALLBACK_URL=</code></td>
+          <td><span class="badge-must">Must Update</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>frontend/.env.local.example</code></td>
+          <td>Add: <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID=</code></td>
+          <td><span class="badge-must">Must Update</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>README.md</code> — Getting Started</td>
+          <td>Add Google Cloud Console prerequisite: create project → enable People API → configure OAuth consent screen → create credentials → set authorized redirect URI.</td>
+          <td><span class="badge-must">Must Update</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>README.md</code> — Core API Endpoints</td>
+          <td>Add: <code>POST /api/auth/google</code> — verify Google ID token and issue ServiceFlow JWT.</td>
+          <td><span class="badge-must">Must Update</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>README.md</code> — Technical Features</td>
+          <td>Update feature 1 to mention Google OAuth / social login alongside JWT.</td>
+          <td><span class="badge-likely">Should Update</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>er_diagram.md</code> — User entity</td>
+          <td>Add <code>googleId: string (optional)</code> field; mark <code>password</code> as nullable/optional in the User block.</td>
+          <td><span class="badge-must">Must Update</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>system_flow.md</code></td>
+          <td>Add OAuth path: Guest → Clicks "Sign in with Google" → Google popup → ID token → POST /api/auth/google → JWT issued → dashboard.</td>
+          <td><span class="badge-must">Must Update</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>nixpacks.toml</code></td>
+          <td>Add comment listing required runtime env vars for operators (<code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code>). Prevents silent deployment failures.</td>
+          <td><span class="badge-likely">Should Update</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>backend/seed.js</code></td>
+          <td>Add note that all seeded accounts are password-only. No OAuth user is seeded; OAuth accounts are created on first Google sign-in.</td>
+          <td><span class="badge-likely">Should Update</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>presentation.md</code> — Slide 4 &amp; 9</td>
+          <td>Slide 4: add "Google OAuth 2.0" to tech stack. Slide 9: move OAuth from roadmap to delivered feature.</td>
+          <td><span class="badge-low">Consider</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><code>SECURITY.md</code> (new file)</td>
+          <td>Document: Google OAuth client secret management, .env never to be committed, credential rotation procedure, XSS risk of localStorage JWT storage.</td>
+          <td><span class="badge-low">Consider</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  
+  <div class="section">
+    <div class="section-title"><span>05</span>Testing Gaps &amp; Requirements</div>
+
+    <div class="callout danger">
+      <strong>Critical Gap — Zero Test Infrastructure</strong>
+      <p>No test files, no test runner, no test script, and no test dependencies exist anywhere in the project. The only hint of test awareness is the <code>NODE_ENV !== "test"</code> guard in <code>backend/server.js:60</code>, which the original author included but never wired up. Before any OAuth test can be written, Jest + Supertest (backend) and Jest + React Testing Library (frontend) must be installed.</p>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Test Required</th><th>Where</th><th>Risk</th><th>Confidence</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>OAuth controller unit test</strong>: valid token → new user created → JWT returned; valid token → existing user returned; invalid token → 401</td>
+          <td><code>backend/controllers/authController.test.js</code></td>
+          <td><span class="badge-critical">Critical</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><strong>Account-linking edge case</strong>: user registered with email+password then signs in with Google using same email → existing account linked, not duplicated. MongoDB unique index on email would throw E11000 on naive create.</td>
+          <td><code>backend/controllers/authController.test.js</code></td>
+          <td><span class="badge-critical">Critical</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><strong>User model schema regression</strong>: User.create without password + without googleId still fails validation; User.create without password + with googleId succeeds; pre-save bcrypt hook safely skips when password is undefined.</td>
+          <td><code>backend/models/User.test.js</code></td>
+          <td><span class="badge-critical">Critical</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><strong>Integration test — full callback cycle</strong>: supertest POST /api/auth/google with mocked Google library → assert 200 + JWT, upserted User document, correct role assignment.</td>
+          <td><code>backend/routes/authRoutes.test.js</code></td>
+          <td><span class="badge-critical">Critical</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><strong>AuthContext loginWithGoogle()</strong>: token stored in localStorage, user state set, error state on failure, mount hydration works for OAuth-issued JWT.</td>
+          <td><code>frontend/src/context/AuthContext.test.js</code></td>
+          <td><span class="badge-high">High</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><strong>Login page Google button</strong>: button renders, click triggers loginWithGoogle(), success redirects to correct dashboard role, failure shows error message.</td>
+          <td><code>frontend/src/app/login/page.test.js</code></td>
+          <td><span class="badge-high">High</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><strong>Google HTTP call mocking</strong>: <code>google-auth-library</code>'s <code>OAuth2Client.verifyIdToken</code> must be mocked in all tests. Without mocking, tests hit Google's servers, are non-deterministic, and fail in CI.</td>
+          <td>All backend auth tests</td>
+          <td><span class="badge-high">High</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><strong>isActive default for OAuth users</strong>: confirm User.create via OAuth sets isActive:true; protect middleware grants access; findOneAndUpdate upsert does not accidentally set isActive to undefined.</td>
+          <td><code>backend/middleware/auth.test.js</code></td>
+          <td><span class="badge-high">High</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><strong>authLimiter threshold</strong>: confirm the 15 req/15 min window is not exhausted by normal OAuth retry patterns (user clicks back and retries).</td>
+          <td><code>backend/server.test.js</code></td>
+          <td><span class="badge-medium">Medium</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+        <tr>
+          <td><strong>localStorage JWT XSS documentation</strong>: no test validates storage mechanism; if httpOnly cookies are ever adopted, the AuthContext useEffect hydration silently breaks.</td>
+          <td><code>frontend/src/context/AuthContext.test.js</code></td>
+          <td><span class="badge-medium">Medium</span></td>
+          <td><span class="badge-confirmed">Confirmed</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  
+  <div class="section">
+    <div class="section-title"><span>06</span>New Dependencies Required</div>
+    <table>
+      <thead>
+        <tr><th>Package</th><th>Side</th><th>Purpose</th><th>Install Command</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>google-auth-library</code></td><td>Backend</td><td>Verifies Google ID tokens server-side via <code>OAuth2Client.verifyIdToken()</code>. Official Google library.</td><td><code>npm install google-auth-library</code></td></tr>
+        <tr><td><code>@react-oauth/google</code></td><td>Frontend</td><td>Provides <code>GoogleOAuthProvider</code> wrapper and <code>GoogleLogin</code> button component for Next.js 14 App Router. Client-side only.</td><td><code>npm install @react-oauth/google</code></td></tr>
+        <tr><td><code>jest</code>, <code>supertest</code>, <code>mongodb-memory-server</code></td><td>Backend (dev)</td><td>Test runner, HTTP assertion layer, in-memory MongoDB for integration tests. All absent today.</td><td><code>npm install -D jest supertest mongodb-memory-server</code></td></tr>
+        <tr><td><code>jest</code>, <code>@testing-library/react</code>, <code>@testing-library/jest-dom</code></td><td>Frontend (dev)</td><td>Component testing for AuthContext and login/register pages. All absent today.</td><td><code>npm install -D jest @testing-library/react @testing-library/jest-dom</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  
+  <div class="section">
+    <div class="section-title"><span>07</span>Data Flow Changes</div>
+
+    <p><strong>Current (password) flow:</strong></p>
+    <div class="flow" style="margin-bottom:16px">
+      <div class="flow-box">User submits email+password</div><div class="flow-arrow">→</div>
+      <div class="flow-box">POST /api/auth/login</div><div class="flow-arrow">→</div>
+      <div class="flow-box">bcrypt.compare()</div><div class="flow-arrow">→</div>
+      <div class="flow-box">generateToken(id)</div><div class="flow-arrow">→</div>
+      <div class="flow-box">JWT → localStorage</div><div class="flow-arrow">→</div>
+      <div class="flow-box">Bearer → protect</div>
+    </div>
+
+    <p><strong>New (Google OAuth) flow — only the shaded steps change:</strong></p>
+    <div class="flow" style="margin-bottom:4px">
+      <div class="flow-box changed">User clicks Google button</div><div class="flow-arrow">→</div>
+      <div class="flow-box changed">Google popup → ID token</div><div class="flow-arrow">→</div>
+      <div class="flow-box new">POST /api/auth/google (new route)</div><div class="flow-arrow">→</div>
+      <div class="flow-box new">verifyIdToken() with google-auth-library</div><div class="flow-arrow">→</div>
+      <div class="flow-box new">findOrCreate User by googleId/email</div><div class="flow-arrow">→</div>
+      <div class="flow-box">generateToken(id) ← unchanged</div>
+    </div>
+    <div class="flow">
+      <div class="flow-box">JWT → localStorage ← unchanged</div><div class="flow-arrow">→</div>
+      <div class="flow-box">Bearer → protect ← unchanged</div><div class="flow-arrow">→</div>
+      <div class="flow-box">authorize(role) ← unchanged</div><div class="flow-arrow">→</div>
+      <div class="flow-box">dashboard/{role} ← unchanged</div>
+    </div>
+    <p style="margin-top:10px;font-size:13px;color:#57606a"><span class="badge-confirmed" style="background:#e9f8f0;color:#1a7a3e;border-color:#b0e0c4">Unchanged</span>   <code>generateToken</code>, JWT structure, localStorage key, axios interceptor, <code>protect</code> middleware, <code>authorize</code> middleware, all dashboards, all other routes.</p>
+  </div>
+
+
+  
+  <div class="section">
+    <div class="section-title"><span>08</span>Risks</div>
+
+    <div class="callout danger">
+      <strong>Risk 1 — Blocker: password: required:true (Confirmed)</strong>
+      <p><code>backend/models/User.js:9</code> — Mongoose validates <code>required: true</code> <em>before</em> the pre-save hook runs. Any <code>User.create()</code> call for an OAuth user without a password will throw a <code>ValidationError</code>. This is a silent hard blocker that produces no obvious OAuth-related error message. Must be fixed first.</p>
+    </div>
+
+    <div class="callout warn">
+      <strong>Risk 2 — Account Linking Collision (Confirmed)</strong>
+      <p>A user who registered with email+password and later signs in with Google using the same email will trigger a MongoDB E11000 duplicate-key error (email is <code>unique: true</code>) if the OAuth controller naively calls <code>User.create()</code> without a prior lookup. The controller must perform <code>User.findOne({ email })</code> first, link the <code>googleId</code> to the existing account, and return a new JWT rather than rejecting with "email already in use."</p>
+    </div>
+
+    <div class="callout warn">
+      <strong>Risk 3 — generateToken is module-private (Confirmed)</strong>
+      <p><code>generateToken</code> is defined as a non-exported <code>const</code> in <code>authController.js</code>. It is reusable within the same file, but if the OAuth handler is placed in a separate file, it must either be moved to a shared utility or duplicated. Recommend adding the OAuth handler to the existing <code>authController.js</code> to avoid this issue.</p>
+    </div>
+
+    <div class="callout warn">
+      <strong>Risk 4 — comparePassword on OAuth Users (Confirmed)</strong>
+      <p><code>userSchema.methods.comparePassword</code> calls <code>bcrypt.compare(candidate, this.password)</code>. If <code>this.password</code> is <code>undefined</code> for an OAuth-only user, bcrypt will throw or return false. If any code path ever calls <code>comparePassword</code> on an OAuth user, this will produce a cryptic error. The login controller should short-circuit if <code>user.googleId</code> is set and no password is stored.</p>
+    </div>
+
+    <div class="callout">
+      <strong>Risk 5 — Helmet CSP may block Google Identity SDK (Potential)</strong>
+      <p><code>backend/server.js:30</code> — Helmet's default Content-Security-Policy does not include <code>accounts.google.com</code> in allowed script/frame sources. The <code>@react-oauth/google</code> library loads an external JS snippet from Google. This may be blocked in production. The backend's <code>helmet()</code> config or Next.js's <code>next.config.mjs</code> headers would need a <code>script-src</code> allowance.</p>
+    </div>
+
+    <div class="callout">
+      <strong>Risk 6 — JWT in localStorage (XSS Exposure, Pre-existing)</strong>
+      <p>This is not introduced by OAuth but is amplified by it. The Google sign-in surface increases the JavaScript exposure of the page. A stored XSS attack could exfiltrate the <code>serviceflow_token</code> from localStorage. This is a known architectural trade-off; HttpOnly cookies would mitigate it but require significant changes to AuthContext, the axios interceptor, and the backend CORS config. Document as a known risk.</p>
+    </div>
+
+    <div class="callout">
+      <strong>Risk 7 — Zero Test Coverage (Critical, Pre-existing)</strong>
+      <p>No automated tests exist. Any regression in the auth flow — schema changes, route additions, middleware interaction — is detectable only through manual QA. The <code>password: required</code> change, the upsert logic, and the new route are all untestable without a test framework being installed first.</p>
+    </div>
+  </div>
+
+
+  
+  <div class="section">
+    <div class="section-title"><span>09</span>Missing Information &amp; Unknowns</div>
+
+    <div class="unknown-item"><strong>Google Cloud Project credentials not yet obtained.</strong> A Google Cloud Console project with an OAuth 2.0 client ID, consent screen configured, and authorized redirect/origin URIs must be created before any implementation can be tested. This is an external prerequisite with no in-codebase signal of prior setup.</div>
+
+    <div class="unknown-item"><strong>Account-linking policy undefined.</strong> It is currently unspecified whether a user who previously registered with email+password and then signs in with Google using the same email should: (a) have their accounts linked silently, (b) be prompted to link accounts, or (c) receive an error. The implementation choice affects the <code>googleAuth</code> controller logic significantly.</div>
+
+    <div class="unknown-item"><strong>Staff accounts via Google OAuth.</strong> The current design only supports <code>customer</code> role for public sign-ups. It is unclear whether dispatchers or admins should ever be able to use Google OAuth. If so, the admin-only <code>POST /api/auth/staff</code> flow would need an OAuth variant. Assumed out-of-scope until confirmed.</div>
+
+    <div class="unknown-item"><strong>Token refresh strategy.</strong> The current JWT expires in 7 days (<code>JWT_EXPIRES_IN</code>). When a ServiceFlow JWT expires for a Google OAuth user, they must click "Sign in with Google" again. There is no silent token refresh mechanism. If seamless re-authentication is required, a refresh-token flow or silent re-authorization with Google's SDK would be needed — this is not currently designed for either auth method.</div>
+
+    <div class="unknown-item"><strong>Production redirect URI.</strong> The Google OAuth authorized redirect URI must match exactly. The backend <code>GOOGLE_CALLBACK_URL</code> env var must be set correctly for both local development and production environments. This value is not yet documented anywhere in the codebase.</div>
+
+    <div class="unknown-item"><strong>presentation.md content was unread prior to investigation.</strong> Now confirmed: Slide 9 lists Google Maps API as a future roadmap item but makes no mention of Google OAuth. This means OAuth was not on the original project roadmap and stakeholders may need to be briefed on the new dependency on Google Cloud Console.</div>
+  </div>
+
+
+  
+  <div class="section">
+    <div class="section-title"><span>10</span>Proposed Implementation Plan</div>
+
+    <p style="margin-bottom:14px;color:#57606a;font-size:13px">The following steps are ordered to eliminate blockers first, introduce backend before frontend, and add tests alongside each change. No step should be executed until the developer approves the plan.</p>
+
+    <ol class="steps">
+      <li>
+        <div class="step-body">
+          <div class="step-title">Prerequisites — Google Cloud Console Setup (External)</div>
+          <div class="step-detail">Create a Google Cloud project → enable the Google People API → configure OAuth consent screen (External, scopes: email, profile) → create OAuth 2.0 Client ID (Web Application type) → note Client ID and Client Secret → add authorized JavaScript origins (<code>http://localhost:3000</code>) and authorized redirect URIs (<code>http://localhost:5000/api/auth/google/callback</code> if redirect flow; not needed for ID-token flow).</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <div class="step-title">Install Dependencies</div>
+          <div class="step-detail">Backend: <code>npm install google-auth-library</code>. Frontend: <code>npm install @react-oauth/google</code>. Also install test infrastructure: backend <code>npm install -D jest supertest mongodb-memory-server</code>, frontend <code>npm install -D jest @testing-library/react @testing-library/jest-dom</code>. Add <code>"test": "jest"</code> to both <code>package.json</code> scripts.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <div class="step-title">Fix User Schema — Remove password Required Blocker</div>
+          <div class="step-detail">In <code>backend/models/User.js</code>: change <code>password</code> field to <code>required: function(){ return !this.googleId; }</code>. Add <code>googleId: { type: String, sparse: true, unique: true }</code> field. Write unit tests in <code>backend/models/User.test.js</code> to verify: (a) create without password + with googleId succeeds; (b) create without password + without googleId fails validation; (c) pre-save bcrypt hook is skipped safely when password is undefined.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <div class="step-title">Add googleAuth Controller Function</div>
+          <div class="step-detail">In <code>backend/controllers/authController.js</code>: add <code>const { OAuth2Client } = require('google-auth-library')</code> at top. Add exported <code>googleAuth</code> async function: verify ID token → extract payload (email, name, sub/googleId, picture) → <code>User.findOne({ googleId })</code> → if not found, try <code>User.findOne({ email })</code> (account linking) → if still not found, <code>User.create({ name, email, googleId, avatarUrl: picture, role: 'customer', isActive: true })</code> → call existing <code>generateToken(user._id)</code> → return <code>{ success: true, user: user.toSafeObject(), token }</code>. Handle Google verification errors with 401. Write unit tests with <code>google-auth-library</code> mocked.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <div class="step-title">Register New Route</div>
+          <div class="step-detail">In <code>backend/routes/authRoutes.js</code>: import <code>googleAuth</code>. Add <code>router.post('/google', googleAuth)</code>. No <code>protect</code> middleware — user is unauthenticated. Write integration test via supertest: POST with mocked valid/invalid Google token → assert correct responses.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <div class="step-title">Update Environment Files</div>
+          <div class="step-detail">Add to <code>backend/.env.example</code>: <code>GOOGLE_CLIENT_ID=</code>, <code>GOOGLE_CLIENT_SECRET=</code>. Add to <code>frontend/.env.local.example</code>: <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID=</code>. Add actual values to <code>backend/.env</code> and <code>frontend/.env.local</code> (not committed). Update <code>README.md</code> with Google Cloud Console setup steps and new env var inventory.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <div class="step-title">Add loginWithGoogle to AuthContext</div>
+          <div class="step-detail">In <code>frontend/src/context/AuthContext.js</code>: add <code>const loginWithGoogle = async (idToken) =&gt; { const res = await api.post('/auth/google', { idToken }); localStorage.setItem('serviceflow_token', res.data.token); setUser(res.data.user); return res.data.user; }</code>. Add <code>loginWithGoogle</code> to the Provider value. Write RTL tests for success and error paths.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <div class="step-title">Wrap App in GoogleOAuthProvider</div>
+          <div class="step-detail">In <code>frontend/src/app/layout.js</code> (or a <code>"use client"</code> wrapper component): wrap <code>&lt;AuthProvider&gt;</code> with <code>&lt;GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&gt;</code>. Since <code>layout.js</code> is a server component in Next.js 14, create a <code>frontend/src/components/Providers.jsx</code> client component that composes both providers, then use it in layout.js.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <div class="step-title">Add Google Button to Login Page</div>
+          <div class="step-detail">In <code>frontend/src/app/login/page.js</code>: import <code>GoogleLogin</code> from <code>@react-oauth/google</code>. Add the button below (or above) the password form with an <code>onSuccess={async ({ credential }) =&gt; { const user = await loginWithGoogle(credential); router.push('/dashboard/' + user.role); }}</code> handler and an <code>onError</code> handler that sets the error state. Write RTL test for render + success redirect + error display.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <div class="step-title">Add Google Button to Register Page (UX consistency)</div>
+          <div class="step-detail">In <code>frontend/src/app/register/page.js</code>: same as step 9, but redirect on success goes to <code>/dashboard/customer</code> (all OAuth sign-ups are customers). This is optional if the login page's upsert handles first-time users, but recommended for UX.</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <div class="step-title">Update Documentation Files</div>
+          <div class="step-detail">Update <code>er_diagram.md</code> (add googleId to User entity, mark password optional), <code>system_flow.md</code> (add OAuth branch), <code>README.md</code> (prerequisites, new env vars, new API endpoint), <code>nixpacks.toml</code> (add env var comment), <code>backend/seed.js</code> console log (clarify password-only seeding).</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <div class="step-title">Verify Helmet CSP in Development and Production</div>
+          <div class="step-detail">Test that the <code>@react-oauth/google</code> button renders without CSP violations. If blocked, add <code>scriptSrc: ["'self'", "accounts.google.com"]</code> and <code>frameSrc: ["accounts.google.com"]</code> to the helmet configuration in <code>backend/server.js</code>, or add equivalent headers in <code>frontend/next.config.mjs</code>. This step is exploratory — only needed if CSP violations are observed.</div>
+        </div>
+      </li>
+    </ol>
+  </div>
+
+
+  
+  <div class="section">
+    <div class="section-title"><span>11</span>Summary Scorecard</div>
+    <table>
+      <thead><tr><th>Dimension</th><th>Count</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Must-change files</td><td>9</td><td><span class="badge-must">Action Required</span></td></tr>
+        <tr><td>Likely-change files</td><td>3</td><td><span class="badge-likely">Recommended</span></td></tr>
+        <tr><td>Documentation files to update</td><td>9</td><td><span class="badge-config">Update Needed</span></td></tr>
+        <tr><td>New npm packages</td><td>2 prod + 4 dev</td><td><span class="badge-must">Action Required</span></td></tr>
+        <tr><td>Hard blockers (before any OAuth works)</td><td>1</td><td><span class="badge-critical">Critical</span> — <code>password: required:true</code></td></tr>
+        <tr><td>Existing test coverage</td><td>0 tests</td><td><span class="badge-critical">Critical Gap</span></td></tr>
+        <tr><td>Files confirmed unchanged</td><td>All 10+ non-auth files</td><td><span class="badge-nochange">No Change</span></td></tr>
+        <tr><td>Middleware requiring change</td><td>0</td><td><span class="badge-nochange">protect, authorize unchanged</span></td></tr>
+        <tr><td>External prerequisites</td><td>1</td><td>Google Cloud Console project setup</td></tr>
+        <tr><td>Unknown / decision required</td><td>3</td><td>Account-linking policy, staff OAuth scope, token refresh strategy</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">Made with IBM Bob</div>
+</div>
+</body>
+</html>
