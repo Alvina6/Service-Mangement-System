@@ -1,6 +1,9 @@
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
+const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -95,4 +98,74 @@ const createStaffUser = asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, user: user.toSafeObject() });
 });
 
-module.exports = { register, login, getMe, createStaffUser };
+// @desc    Google OAuth — verify GIS ID token, find-or-create user, return JWT
+// @route   POST /api/auth/google
+const googleAuth = asyncHandler(async (req, res) => {
+  const { credential } = req.body;
+
+  if (!credential) {
+    res.status(400);
+    throw new Error("Google credential is required");
+  }
+
+  // Verify the ID token against Google's public keys and our Client ID
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch {
+    res.status(401);
+    throw new Error("Invalid Google token");
+  }
+
+  const { sub: googleId, email, name, picture: avatarUrl, email_verified } = payload;
+
+  // Reject unverified Google email addresses
+  if (!email_verified) {
+    res.status(401);
+    throw new Error("Google account email is not verified");
+  }
+
+  // Case 3 — returning Google user (primary lookup by stable googleId)
+  let user = await User.findOne({ googleId });
+
+  if (!user) {
+    // Case 2 — existing password account with the same email: silently link
+    // Case 1 — brand-new user: create
+    user = await User.findOne({ email });
+
+    if (user) {
+      // Link googleId to the existing local account
+      user.googleId = googleId;
+      if (!user.avatarUrl) user.avatarUrl = avatarUrl;
+      await user.save();
+    } else {
+      // New customer account via Google
+      user = await User.create({
+        name,
+        email,
+        avatarUrl,
+        googleId,
+        authProvider: "google",
+        role: "customer",
+      });
+    }
+  }
+
+  // Case 6 — inactive user
+  if (!user.isActive) {
+    res.status(403);
+    throw new Error("Account deactivated. Contact support.");
+  }
+
+  res.json({
+    success: true,
+    user: user.toSafeObject(),
+    token: generateToken(user._id),
+  });
+});
+
+module.exports = { register, login, getMe, createStaffUser, googleAuth };

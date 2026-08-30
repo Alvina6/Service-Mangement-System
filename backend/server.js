@@ -27,7 +27,21 @@ const app = express();
 // --- Security Middleware ---
 
 // 1. Helmet - sets secure HTTP headers
-app.use(helmet({ crossOriginResourcePolicy: false }));
+// CSP extended to allow Google Identity Services (accounts.google.com)
+// Required for the GIS script and popup OAuth flow to function correctly
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "script-src": ["'self'", "https://accounts.google.com"],
+        "frame-src": ["'self'", "https://accounts.google.com"],
+        "connect-src": ["'self'", "https://accounts.google.com", "https://oauth2.googleapis.com"],
+      },
+    },
+  })
+);
 
 // 2. CORS - restrict to known client origin
 app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:3000", credentials: true }));
@@ -37,22 +51,30 @@ app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:3000", creden
 app.use(mongoSanitize({ replaceWith: "_" }));
 
 // 4. Auth Rate Limiter — 15 requests per 15 minutes on auth endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: "Too many login attempts. Please try again after 15 minutes." },
-});
+//    Disabled in test environment to avoid 429 interference between test cases
+const authLimiter =
+  process.env.NODE_ENV === "test"
+    ? (req, res, next) => next()
+    : rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 15,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { success: false, message: "Too many login attempts. Please try again after 15 minutes." },
+      });
 
 // 5. General API Rate Limiter — 200 requests per minute (prevents scraping/flooding)
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: "Too many requests. Please slow down." },
-});
+//    Disabled in test environment for the same reason
+const apiLimiter =
+  process.env.NODE_ENV === "test"
+    ? (req, res, next) => next()
+    : rateLimit({
+        windowMs: 60 * 1000,
+        max: 200,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { success: false, message: "Too many requests. Please slow down." },
+      });
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
